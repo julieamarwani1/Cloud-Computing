@@ -55,7 +55,7 @@ resources:
     type: OS::Neutron::Subnet
     properties:
       network_id: { get_resource: private_network }
-      cidr: 10.10.10.0/24
+      cidr: 192.168.3.0/24
       dns_nameservers:
         - 130.238.164.6 
         - 130.238.4.133 
@@ -79,7 +79,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: { get_resource: private_network }
-      fixed_ips: [{"subnet": { get_resource: private_subnet }, "ip_address": 10.10.10.10}]
+      fixed_ips: [{"subnet": { get_resource: private_subnet }, "ip_address": 192.168.3.10}]
       security_groups:
         - { get_resource: cluster_sg }
   
@@ -87,7 +87,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: { get_resource: private_network }
-      fixed_ips: [{"subnet": { get_resource: private_subnet }, "ip_address": 10.10.10.11}]
+      fixed_ips: [{"subnet": { get_resource: private_subnet }, "ip_address": 192.168.3.11}]
       security_groups:
         - { get_resource: cluster_sg }
 
@@ -95,7 +95,7 @@ resources:
     type: OS::Neutron::Port
     properties:
       network: { get_resource: private_network }
-      fixed_ips: [{"subnet": { get_resource: private_subnet }, "ip_address": 10.10.10.12}]
+      fixed_ips: [{"subnet": { get_resource: private_subnet }, "ip_address": 192.168.3.12}]
       security_groups:
         - { get_resource: cluster_sg }
  
@@ -116,9 +116,9 @@ resources:
         apt-get update -y
         apt-get upgrade -y
         apt-get install -y ansible
-        echo "ansible-node ansible_ssh_host=10.10.10.10" >> /etc/ansible/hosts
-        echo "sparkmaster  ansible_ssh_host=10.10.10.11" >> /etc/ansible/hosts
-        echo "sparkworker1 ansible_ssh_host=10.10.10.12" >> /etc/ansible/hosts
+        echo "ansible-node ansible_ssh_host=192.168.3.10" >> /etc/ansible/hosts
+        echo "sparkmaster  ansible_ssh_host=192.168.3.11" >> /etc/ansible/hosts
+        echo "sparkworker1 ansible_ssh_host=192.168.3.12" >> /etc/ansible/hosts
         echo "" >> /etc/ansible/hosts
         echo "[configNode]" >> /etc/ansible/hosts
         echo "ansible-node ansible_connection=local ansible_user=ubuntu" >> /etc/ansible/hosts
