@@ -1,0 +1,186 @@
+################
+# A comprehensive implementation of injecting public keys is available on following URL:
+#
+#https://github.com/openstack/heat-templates/blob/master/hot/software-config/example-templates/example-ssh-copy-id.yaml
+#################
+
+
+heat_template_version: 2013-05-23
+
+description: Simple template to deploy a single compute instance
+
+# Declare parameters 
+parameters:
+
+  image:
+    type: string
+    label: Image name or ID
+    description: Image to be used for compute instance
+    default: Ubuntu 18.04
+
+  flavor:
+    type: string
+    label: Flavor
+    description: Type of instance (flavor) to be used
+    default: ssc.medium
+
+  key:
+    type: string
+    label: Key name
+    description: Name of key-pair to be used for compute instance
+    default: a2
+
+  public_network:
+    type: string
+    label: Public network name or ID
+    description: Public network with floating IP addresses.
+    default: Public External IPv4 Network
+
+# Resource allocation
+resources:
+  cluster_sg:
+    type: OS::Neutron::SecurityGroup
+    properties:
+      name: cluster_sg
+      rules:
+        - protocol: icmp
+        - protocol: tcp
+          port_range_min: 22
+          port_range_max: 22
+ 
+  private_network:
+    type: OS::Neutron::Net
+
+  private_subnet:
+    type: OS::Neutron::Subnet
+    properties:
+      network_id: { get_resource: private_network }
+      cidr: 10.10.10.0/24
+      dns_nameservers:
+        - 130.238.164.6 
+        - 130.238.4.133 
+        - 130.238.7.10
+        - 130.239.1.90
+        - 129.16.1.53
+
+  router:
+    type: OS::Neutron::Router
+    properties:
+      external_gateway_info:
+        network: { get_param: public_network }
+
+  router-interface:
+    type: OS::Neutron::RouterInterface
+    properties:
+      router_id: { get_resource: router }
+      subnet: { get_resource: private_subnet }
+
+  ansible_master_port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_resource: private_network }
+      fixed_ips: [{"subnet": { get_resource: private_subnet }, "ip_address": 10.10.10.10}]
+      security_groups:
+        - { get_resource: cluster_sg }
+  
+  spark_master_port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_resource: private_network }
+      fixed_ips: [{"subnet": { get_resource: private_subnet }, "ip_address": 10.10.10.11}]
+      security_groups:
+        - { get_resource: cluster_sg }
+
+  spark_worker_port:
+    type: OS::Neutron::Port
+    properties:
+      network: { get_resource: private_network }
+      fixed_ips: [{"subnet": { get_resource: private_subnet }, "ip_address": 10.10.10.12}]
+      security_groups:
+        - { get_resource: cluster_sg }
+ 
+  ansible_master:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key }
+      networks:
+        - port: { get_resource: ansible_master_port }         
+      user_data: |
+        #!/bin/sh
+        echo "Hello, World!"
+        echo "AAAAB3NzaC1yc2EAAAADAQABAAABAQCYfCjl0Gm1xor/sIjpM/LK1rWksLJMJuFiiWtaERcJ6To7/21VOZngtgvJjiVZDZYcxLian0B/qZqKhMwAWfm4jXmq/qp1d2gUFRvkWQjeP1li7jpGSeBxS3nIsoK4/dn+VcKMBSZCRfmIB3nMZfzqnIU1fDRuIOkJBp9HBwiJSkCBT3GOrocfq4ImTk4447aKXs1G3iNXsFKRMbNHsq/sW+CK43xnlFKtq2jV3oyidf8MDk995w6K26mDcofY0LW70JLeFtg42hl9gS5MgvMIEarQevQPIe0xszyu8ph8QE9nwQsz6u7yp4IJZM1rj5LiXM3Zx908M4S8lTSit5sJ" >> /home/ubuntu/.ssh/authorized_keys
+        apt install python-minimal
+        apt-add-repository -y ppa:ansible/ansible
+        apt-get update -y
+        apt-get upgrade -y
+        apt-get install -y ansible
+        echo "ansible-node ansible_ssh_host=10.10.10.10" >> /etc/ansible/hosts
+        echo "sparkmaster  ansible_ssh_host=10.10.10.11" >> /etc/ansible/hosts
+        echo "sparkworker1 ansible_ssh_host=10.10.10.12" >> /etc/ansible/hosts
+        echo "" >> /etc/ansible/hosts
+        echo "[configNode]" >> /etc/ansible/hosts
+        echo "ansible-node ansible_connection=local ansible_user=ubuntu" >> /etc/ansible/hosts
+        echo "" >> /etc/ansible/hosts
+        echo "[sparkmaster]" >> /etc/ansible/hosts
+        echo "sparkmaster ansible_connection=ssh ansible_user=ubuntu" >> /etc/ansible/hosts
+        echo "" >> /etc/ansible/hosts
+        echo "[sparkworker]" >> /etc/ansible/hosts
+        echo "sparkworker[1:1] ansible_connection=ssh ansible_user=ubuntu" >> /etc/ansible/hosts
+      user_data_format: RAW
+
+  spark_master:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key }
+      networks:
+        - port: { get_resource: spark_master_port }
+      user_data: |
+        #!/bin/sh
+        echo "Hello, World!"
+        echo "AAAAB3NzaC1yc2EAAAADAQABAAABAQCYfCjl0Gm1xor/sIjpM/LK1rWksLJMJuFiiWtaERcJ6To7/21VOZngtgvJjiVZDZYcxLian0B/qZqKhMwAWfm4jXmq/qp1d2gUFRvkWQjeP1li7jpGSeBxS3nIsoK4/dn+VcKMBSZCRfmIB3nMZfzqnIU1fDRuIOkJBp9HBwiJSkCBT3GOrocfq4ImTk4447aKXs1G3iNXsFKRMbNHsq/sW+CK43xnlFKtq2jV3oyidf8MDk995w6K26mDcofY0LW70JLeFtg42hl9gS5MgvMIEarQevQPIe0xszyu8ph8QE9nwQsz6u7yp4IJZM1rj5LiXM3Zx908M4S8lTSit5sJ" >> /home/ubuntu/.ssh/authorized_keys
+        apt install python-minimal
+        apt-get update -y
+        apt-get upgrade -y
+      user_data_format: RAW
+
+  spark_worker:
+    type: OS::Nova::Server
+    properties:
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key }
+      networks:
+        - port: { get_resource: spark_worker_port }
+      user_data: |
+        #!/bin/sh
+        echo "Hello, World!"
+        echo "AAAAB3NzaC1yc2EAAAADAQABAAABAQCYfCjl0Gm1xor/sIjpM/LK1rWksLJMJuFiiWtaERcJ6To7/21VOZngtgvJjiVZDZYcxLian0B/qZqKhMwAWfm4jXmq/qp1d2gUFRvkWQjeP1li7jpGSeBxS3nIsoK4/dn+VcKMBSZCRfmIB3nMZfzqnIU1fDRuIOkJBp9HBwiJSkCBT3GOrocfq4ImTk4447aKXs1G3iNXsFKRMbNHsq/sW+CK43xnlFKtq2jV3oyidf8MDk995w6K26mDcofY0LW70JLeFtg42hl9gS5MgvMIEarQevQPIe0xszyu8ph8QE9nwQsz6u7yp4IJZM1rj5LiXM3Zx908M4S8lTSit5sJ" >> /home/ubuntu/.ssh/authorized_keys
+        apt install python-minimal
+        apt-get update -y
+        apt-get upgrade -y
+      user_data_format: RAW
+
+
+  floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network: { get_param: public_network }
+
+  floating_ip_assoc:
+    type: OS::Neutron::FloatingIPAssociation
+    properties:
+      floatingip_id: { get_resource: floating_ip }
+      port_id: { get_resource: ansible_master_port } 
+
+# Output in case of successful booting
+outputs:
+  instance_name:
+    description: Name of the instance
+    value: { get_attr: [ansible_master, name] }
+  instance_ip:
+    description: IP address of the instance
+    value: { get_attr: [ansible_master, first_address, floating_ip, floating_ip_address] }
