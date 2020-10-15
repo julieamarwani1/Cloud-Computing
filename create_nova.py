@@ -32,8 +32,8 @@ def create():
         net = nova.neutron.find_network(private_net)
         nics = [{'net-id': net.id}]
     else:
-    print("private-net not defined.")
-    return False
+        print("private-net not defined.")
+        return False
 
     for node in nodes:
         print("Creating instance ... ")
