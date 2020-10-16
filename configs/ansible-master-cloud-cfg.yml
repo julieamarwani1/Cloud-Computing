@@ -10,4 +10,3 @@ runcmd:
       sudo apt-get clean
     - cd /home/ubuntu
     - sudo git clone https://github.com/QTLaaS/QTLaaS.git
-    - ansible-playbook -b /home/ubuntu/QTLaaS/spark_deployment.yml
