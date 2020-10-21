@@ -1,0 +1,188 @@
+- hosts: all
+  tasks:
+
+   - name: Generate hosts file
+     lineinfile: dest=/etc/hosts
+                 regexp='.*{{ item }}$'
+                 line="{{ hostvars[item].ansible_default_ipv4.address }} {{item}}"
+                 state=present            
+     when: hostvars[item].ansible_default_ipv4.address is defined
+     with_items: "{{groups['all']}}"
+   
+   - name: Set hostname
+     hostname: name="{{inventory_hostname}}"
+   
+   - name: Include variables
+     include_vars: setup_var.yml 
+
+   - name: apt update
+     apt: update_cache=yes upgrade=dist
+
+   - name: install java
+     apt: pkg={{item}} state=latest update_cache=true 
+     with_items:
+     #- default-jre
+     #- default-jdk
+      - openjdk-8-jdk
+      - openjdk-8-jre   
+   - name: download spark
+     unarchive: src={{item}} dest=/usr/local/ copy=no 
+     with_items: "{{spark_urls}}"  
+     
+     #unarchive: src={{item}} dest=/usr/local/ copy=no
+     #with_items:
+     # - http://apache.mirrors.spacedump.net/spark/spark-1.6.1/spark-1.6.1-bin-hadoop2.6.tgz
+     # - http://downloads.lightbend.com/scala/2.11.8/scala-2.11.8.tgz
+
+   - name: adding paths
+     lineinfile: dest="{{rc_file}}" line='export PATH=$PATH:{{spark_home}}/bin/:{{scala_home}}/bin\nexport JAVA_HOME={{java_home}}\nSPARK_HOME={{spark_home}}' insertafter='EOF' regexp='export PATH=\$SPARK_HOME' state=present 
+
+     #lineinfile: dest=/home/ubuntu/.bashrc line='export PATH=$PATH:/usr/local/spark-1.6.1-bin-hadoop2.6/bin/:/usr/local/scala-2.11.8/bin\nexport JAVA_HOME=/usr/lib/jvm/java-7-openjdk-amd64\nSPARK_HOME=/usr/local/spark-1.6.1-bin-hadoop2.6' insertafter='EOF' regexp='export PATH=\$SPARK_HOME' state=present 
+   
+   - name: source bashrc   
+     shell: . "{{rc_file}}"
+
+   - name: R repo key
+     apt_key: keyserver=keyserver.ubuntu.com id=E298A3A825C0D65DFD57CBB651716619E084DAB9
+     #keyserver.ubuntu.com
+
+   - name: adding R repo
+     #apt_repository: repo={{r_repo}} update_cache=yes
+     apt_repository: repo='deb http://ftp.acc.umu.se/mirror/CRAN/bin/linux/ubuntu bionic-cran35/' update_cache=yes 
+     #deb http://ftp.acc.umu.se/mirror/CRAN/bin/linux/ubuntu xenial/
+     #apt_repository: repo={{r_repo}} update_cache=yes
+
+     #apt_repository: repo='deb http://ftp.acc.umu.se/mirror/CRAN/bin/linux/ubuntu trusty/' update_cache=yes
+ 
+   - name: apt update
+     apt: update_cache=yes upgrade=dist
+
+   - name: install R 
+     apt: pkg={{item}} state=latest update_cache=true allow_unauthenticated=yes 
+     with_items:
+      - r-base
+      - r-base-dev
+      - libxml2-dev
+
+   - name: adding extra repo
+     #apt_repository: repo={{r_repo}} update_cache=yes
+     apt_repository: repo='ppa:marutter/c2d4u3.5' update_cache=yes 
+
+   - name: extra packages
+     apt: pkg={{item}} state=latest update_cache=true allow_unauthenticated=yes
+     with_items: 
+      - libreadline-dev
+      - libzmq5 
+      - libzmq5-dev
+      - libcurl4-gnutls-dev
+      - r-cran-rcurl
+      - libssl-dev
+
+   - name: R lib instalation
+     command: Rscript --slave --no-save --no-restore-history -e "if (! ('{{ item }}' %in% installed.packages()[,'Package'])) { install.packages(pkgs='{{ item }}', repos=c('https://cran.rstudio.com')); print('Added'); } else { print('Already installed'); }"
+     register: r_result
+     failed_when: "r_result.rc != 0 or 'had non-zero exit status' in r_result.stderr"
+     changed_when: "'Added' in r_result.stdout"
+     with_items:
+      - RCurl
+      - openssl
+      - httr
+      - git2r
+      - libxml2-dev
+      - roxygen2
+      - rversions
+      - devtools
+      - evaluate 
+      - jsonlite
+      - digest
+      - base64enc
+      - uuid 
+      - qtl
+
+   - name: R  spark integration
+     command: Rscript --slave --no-save --no-restore-history -e "if (! ('{{ item }}' %in% installed.packages()[,'Package'])) { install.packages(pkgs='{{ item }}', repos=c('http://irkernel.github.io/'), type = 'source'); print('Added'); } else { print('Already installed'); }"
+     register: r_result
+     failed_when: "r_result.rc != 0 or 'had non-zero exit status' in r_result.stderr"
+     changed_when: "'Added' in r_result.stdout"
+     with_items:
+      - rzmq
+      - repr
+      - evaluate
+      - crayon
+      - pbdZMQ
+      - devtools
+      - uuid
+      - digest
+      - IRkernel
+      - IRdisplay
+
+- hosts: sparkmaster
+  
+  vars_files:
+   - setup_var.yml  
+
+  tasks: 
+   - name: install jupyter
+     apt: pkg={{item}} state=latest update_cache=true
+     with_items:
+      - python-pip
+      - python-dev
+      - build-essential
+      - python3-pip
+ 
+   - pip: name=pip state=latest
+
+   - pip: name=jupyter state=present
+    
+   - name: adding paths
+     lineinfile: dest={{rc_file}} line='export JUPYTER_CONFIG_DIR={{jupyter_config_dir}}\n export JUPYTER_PATH={{jupyter_path}}\nexport JUPYTER_RUNTIME_DIR={{jupyter_runtime_dir}}' insertafter='EOF' regexp='export JUPYTER_PATH' state=present 
+
+     #lineinfile: dest=/home/ubuntu/.bashrc line='export JUPYTER_CONFIG_DIR=/usr/local/etc/jupyter\n export JUPYTER_PATH=/usr/local/share/jupyter\nexport JUPYTER_RUNTIME_DIR=/usr/local/share/jupyter-runtime' insertafter='EOF' regexp='export PATH=\$SPARK_HOME' state=present 
+   
+   - name: source bashrc   
+     shell: . {{rc_file}}
+
+     #shell: . /home/ubuntu/.bashrc
+
+   - name:  add IRKernel
+     command: /usr/bin/Rscript --slave --no-save --no-restore-history -e "devtools::install_github('IRkernel/IRkernel')"
+
+   - name: start IRKernel
+     command: /usr/bin/Rscript --slave --no-save --no-restore-history -e "IRkernel::installspec(user = FALSE)"
+
+   - name: start jupyter
+     shell: runuser -l ubuntu -c 'jupyter notebook --ip=0.0.0.0 --port=60060 &'
+     async: 2592000               # 60*60*24*30 – 1 month
+     args:
+      executable: /bin/bash 
+   
+   - name: jupyter server token
+     shell: cat /home/ubuntu/.local/share/jupyter/runtime/*.json | grep token
+     register: token
+
+   - debug:
+      var: token.stdout_lines
+   
+   - name: disable IPv6
+     shell: "{{item}}"
+     with_items: 
+      - echo "net.ipv6.conf.all.disable_ipv6 = 1\nnet.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf
+      - sysctl -p
+
+   - name: start spark master process
+     shell: nohup {{spark_home}}/sbin/start-master.sh  &
+
+- hosts: sparkworker
+    
+  vars_files:
+   - setup_var.yml
+
+  tasks:
+   - name: disable IPv6
+     shell: "{{item}}"
+     with_items:
+      - echo "net.ipv6.conf.all.disable_ipv6 = 1\nnet.ipv6.conf.default.disable_ipv6 = 1\nnet.ipv6.conf.lo.disable_ipv6 = 1" >> /etc/sysctl.conf
+      - sysctl -p
+ 
+   - name: start spark worker process
+     shell: nohup {{spark_home}}/sbin/start-slave.sh spark://sparkmaster:7077 &

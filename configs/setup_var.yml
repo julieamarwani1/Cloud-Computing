@@ -1,0 +1,15 @@
+rc_file: /home/ubuntu/.bashrc
+spark_home: /usr/local/spark-2.4.7-bin-hadoop2.7
+scala_home: /usr/local/scala-2.11.8
+java_home: /usr/lib/jvm/java-8-openjdk-amd64
+
+spark_urls:
+ - http://apache.mirrors.spacedump.net/spark/spark-2.4.7/spark-2.4.7-bin-hadoop2.7.tgz
+ - http://downloads.lightbend.com/scala/2.11.8/scala-2.11.8.tgz
+
+r_repo: 'deb http://ftp.acc.umu.se/mirror/CRAN/bin/linux/ubuntu bionic-cran35/'
+
+jupyter_path: /usr/local/share/jupyter
+jupyter_runtime_dir: /usr/local/share/jupyter-runtime
+jupyter_config_dir: /usr/local/etc/jupyter
+  
