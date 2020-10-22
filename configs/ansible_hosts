@@ -1,0 +1,15 @@
+G1_worker2 ansible_ssh_host=192.168.2.114
+G1_ansible-master ansible_ssh_host=192.168.2.127
+G1_spark-master ansible_ssh_host=192.168.2.122
+G1_worker ansible_ssh_host=192.168.2.240
+
+
+[configNode]
+G1_ansible-master ansible_connection=local ansible_user=ubuntu
+
+[sparkmaster]
+G1_spark-master ansible_connection=ssh ansible_user=ubuntu ansible_ssh_extra_args='-o StrictHostKeyChecking=no'
+
+[sparkworker]
+G1_worker ansible_connection=ssh ansible_user=ubuntu ansible_ssh_extra_args='-o StrictHostKeyChecking=no'
+G1_worker2 ansible_connection=ssh ansible_user=ubuntu ansible_ssh_extra_args='-o StrictHostKeyChecking=no'

@@ -1,0 +1,12 @@
+#cloud-config
+
+apt_update: true
+apt_upgrade: true
+packages:
+ - build-essential
+byobu_default: system 
+
+runcmd:
+ - sudo apt-get update
+ - sudo apt-get install -y python3
+ - sudo echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDPzGiaVKQN2KzmqRpEp/myRlaYG7zCv+aAhxPImUEAd5X7WXtM8qjoBTtCAuwsPEZ3XQb/omQGjdl1fSAavyBxri/TqPKiEYRgyjiqB1JiIMmG0qV9qbpkJpQqfdZ53vNpPRs7dzm7s7GhqKAECXmYhWB5Jr6bU095wDJB4UT4Qv0akF6fqv+mKY5szkpmUsHO762sfluFbezykrT/TMJmsA3O7L/QY80GkrD7c0N7TFz5Hma8+2HIzB7tld3eVKY2QoUIsuRuJEM2mwuUZhMV0BrEXEku0NyBe+IpJlPErBDPUOML5MMyw8zvkuZxi7TR8whnrXkgH16b3ANOEYiD ubuntu@AnsibleMaster" >> /home/ubuntu/.ssh/authorized_keys

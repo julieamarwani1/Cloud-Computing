@@ -1,0 +1,44 @@
+#cloud-config
+
+apt_update: true
+apt_upgrade: true
+packages:
+ - build-essential
+byobu_default: system 
+
+runcmd:
+ - sudo apt-get update
+ - sudo apt-get install -y python3
+ - sudo apt install python-minimal
+ - sudo apt-add-repository -y ppa:ansible/ansible
+ - sudo apt-get -y update
+ - sudo apt-get -y upgrade
+ - sudo apt-get install -y ansible
+ - sudo echo "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDPzGiaVKQN2KzmqRpEp/myRlaYG7zCv+aAhxPImUEAd5X7WXtM8qjoBTtCAuwsPEZ3XQb/omQGjdl1fSAavyBxri/TqPKiEYRgyjiqB1JiIMmG0qV9qbpkJpQqfdZ53vNpPRs7dzm7s7GhqKAECXmYhWB5Jr6bU095wDJB4UT4Qv0akF6fqv+mKY5szkpmUsHO762sfluFbezykrT/TMJmsA3O7L/QY80GkrD7c0N7TFz5Hma8+2HIzB7tld3eVKY2QoUIsuRuJEM2mwuUZhMV0BrEXEku0NyBe+IpJlPErBDPUOML5MMyw8zvkuZxi7TR8whnrXkgH16b3ANOEYiD ubuntu@AnsibleMaster" >> /home/ubuntu/.ssh/authorized_keys
+ - sudo echo "-----BEGIN RSA PRIVATE KEY-----" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "MIIEpAIBAAKCAQEAz8xomlSkDdis5qkaRKf5skZWmBu8wr/mgIcTyJlBAHeV+1l7" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "TPKo6AU7QgLsLDxGd10G/6JkBo3ZdX0gGr8gca4v06jyohGEYMo4qgdSYiDJhtKl" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "fam6ZCaUKn3Wed7zaT0bO3c5u7OxoaigBAl5mIVgeSa+m1NPecAyQeFE+EL9GpBe" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "n6r/pimObM5KZlLBzu+trH5bhW3s8pK0/0zCZrANzuy/0GPNBpKw+3NDe0xc+R5m" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "vPthyMwe7ZXd3lSmNkKFCLLkbiRDNpsLlGYTFdAaxFxJLtDcgXviKSZTxKwQz1Dj" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "C+TDMsPM75LmcYu00fMIZ615IB9em9wDThGIgwIDAQABAoIBAQCRqyOw/KC8rCYY" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "1HZ7pp1eIfzWSKt8gnYdp5Nwzi5JG4viVYogGQPbEr/FuLLDF8X2Kxqa3cXs6keF" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "GyAEX/Nofck9QXRFtK3uBBTQ7K0N6RodD1G/09m8F2dKmkhdyrMsFRAgEaZBNOjT" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "AJib++Bn0SgeBdEcpbxTBy60DC0DMv9H9mYaL8NCmScbii1nQL4TXaWKDKqBOI8X" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "x/fYwjIStER6t8o3i/wY529ui6k9WdGi303pTOTHq9eERyB7JaCLsJRZBvdf7x0S" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "sy73R46h/yL8+8BWhj1creosrnZsaiXV6bdZUNKbZHgXNgHoNhM4CbgYGDeUrWIE" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "VoEBa3URAoGBAOdCRnHbLtfgIwK05EtCnF9nJOeAyGWDVytt/vSpn/FV0Lv/YHVJ" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "ZrBDi+94pMEMzuvAqMmJsMxqvIacU/QicBi0KCQRE/0byNF4/YTv8Z+D12oK+s0P" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "6ih854rtmMBmmP+EM/YHEvECaKS2jOsr4T8VWHfqV1kw9JZzi0H3DBqnAoGBAOYH" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "mVFdk9oENaIDwZqQTbJjiVQhgy8Abv8Ilr13a5sLJ0Ap3Ia2ErOCInhqFQWYuMJF" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "QlswLXOKb07xApX4cK9suL3hjBycEGn8M4syqrEwyBskZa3P+94BVEy+Ck9KxOBe" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "aBagaCZC/qwCEcFJQSXOzwJ3HbaRvM3gTAAM5YrFAoGBAKW056VN2RL2mB+oXq1O" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "3Z2+2sLHlNCofB2yg63snZ7gTuFm7EcegWZsACln2SY7d0mWk1tWPkk7cjtCaSXW" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "R1xsOxcc5aXH8u2mNIK9K/WRExn5JB0r+i1o0sDJ31p+KcNth44TI49ummzsIa2h" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "k5UQRoQmdtCCM8Baqr5pt1KhAoGAFZQ46c0hhZ5Heb9odht7bnSv+Vh7eflMcFhZ" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "68Q8L/tH31kN+wUxk+1tVmZ9Ol0tV+wvYWaPnPsrnfg2CeOYjpxgaE+0WSq6z3Z9" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "T12dbanp28H6V+fe9OCjC9/4D6Av/+xbT2QU4SH/yhsXl05L8kQIX27VNr9NOvMD" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "ri2HixECgYAEMrp3zaFBsIk+0zgRikeiz2YRTn5vRjyYEsyCV9xf2IfbhqjL5Sqw" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "4aYkBs59RKiY8rtJOqAqTpKK+oeG7PHfLNzlbQcfHON61l9W5UT5BGtAz9lGdPIm" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "45RtClRltoiuY4Z3ZtGs8s5rEsELsDEQ+bRsZQm7i/beMAbrSKn0iA==" >> /home/ubuntu/.ssh/id_rsa
+ - sudo echo "-----END RSA PRIVATE KEY-----" >> /home/ubuntu/.ssh/id_rsa
