@@ -164,63 +164,80 @@ def copy_files(ansible_ip):
  
 #1Uw93BSs1DSXu8SQeQH4FWraV1ZilgEr9
 #curl  http://130.238.29.19:5000/upload_url/<google_drive_fileid>/<filename>/<folder_name>
+@app.route('/upload_url/<file_id>/<filename>', methods=['GET'])
 @app.route('/upload_url/<file_id>/<filename>/<path:folder_name>', methods=['GET'])
-def upload_url(file_id,filename,folder_name):
+def upload_url(file_id,filename,folder_name = ""):
     
+    spark_ip = find_spark_master_ip()
+            
     url = "https://docs.google.com/uc?export=download&id=" + file_id
     
-    os.system (" hdfs dfs -ls  /" + folder_name + " 2>&1 | tee hdfs.log")
-    with open("hdfs.log","r") as f:
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder_name + '" 2>&1 | tee folder.log')
+    with open("folder.log","r") as f:
         file_read = f.read()
         
         if file_read.find("No such file or directory") != -1:
-            os.system("hdfs dfs -mkdir /" + folder_name + " 2>&1 | tee hdfs.log")
+            os.system('ssh ubuntu@' + spark_ip + ' " mkdir  ~/' + folder_name + '" 2>&1 | tee folder.log')
             
         if file_read.find(filename) != -1:
             return ("File already exists\n")
 
-            
-    os.system("wget --no-check-certificate '" + url + "' -O - | hdfs dfs -put - /" + folder_name + "/" + filename)
+    print ('ssh ubuntu@' + spark_ip + ' "wget  --no-check-certificate \'' + url + '\' -O ~/' + folder_name + '/' + filename + '"')
+    os.system('ssh ubuntu@' + spark_ip + ' "wget  --no-check-certificate \'' + url + '\' -O ~/' + folder_name + '/' + filename + '"')
     
     
     return ("Success\n")
 
+@app.route('/file_check/<filename>/<path:folder_name>', methods=['GET'])
+def file_check(filename,folder_name):
+    
+    spark_ip = find_spark_master_ip()
+    os.system ('ssh ubuntu@' + spark_ip + ' " head  ~/' + folder_name + '/' + filename + '" 2>&1 | tee folder.log')
+    print ('ssh ubuntu@' + spark_ip + ' " tail  ~/' + folder_name + '/' + filename + '"')
+    return (str(open("folder.log","r").read()))
 
 
 #curl -i -X POST http://130.238.29.19:5000/upload_file -F 'file=@20417.txt.utf-8' -F folder_name=
 @app.route('/upload_file', methods=['POST'])
 def upload_file():
     
+    spark_ip = find_spark_master_ip()
+    
     folder_name = (request.form["folder_name"])
 
     filename = str(request.files["file"].filename)
 
-    with open('tmp_file.txt', 'wb') as f:
-        f.write(request.data)
+    with open(os.getcwd() + '/tmp_file.txt', 'wb') as f:
+        f.write(request.files["file"].read())
     
-    os.system (" hdfs dfs -put tmp_file.txt " + folder_name + filename + " 2>&1 | tee hdfs.log")
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder_name + '" 2>&1 | tee folder.log')
     
-    with open("hdfs.log","r") as f:
+    with open("folder.log","r") as f:
         file_read = f.read()
         
         if file_read.find("File exists") != -1:
             return ("File already exists\n")
         
         if file_read.find("No such file or directory") != -1:
-            os.system("hdfs dfs -mkdir " + folder_name + " 2>&1 | tee hdfs.log")
-            os.system ("hdfs dfs -put tmp_file.txt " + folder_name + filename + " 2>&1 | tee hdfs.log")
+            os.system('ssh ubuntu@' + spark_ip + ' " mkdir  ~/' + folder_name + '" 2>&1 | tee folder.log')
+            os.system("scp " + os.getcwd() + "/tmp_file.txt " + " ubuntu@" + spark_ip + ":~/" + folder_name + "/" + filename)
+        else:
+            os.system("scp " + os.getcwd() + "/tmp_file.txt " + " ubuntu@" + spark_ip + ":~/" + folder_name + "/" + filename)
             
-    os.system("rm tmp_file.txt")
+    os.system("rm " + os.getcwd() + "/tmp_file.txt")
     return ("Success\n")
 
 
 #curl  http://130.238.29.19:5000/delete_file/<filename>/<folder_name>
+@app.route('/delete_file/<filename>', methods=['GET'])
 @app.route('/delete_file/<filename>/<path:folder_name>', methods=['GET'])
-def delete_file(filename,folder_name):
+def delete_file(filename,folder_name = ""):
     
-    os.system (" hdfs dfs -ls  /" + folder_name + " 2>&1 | tee hdfs.log")
+    spark_ip = find_spark_master_ip()
     
-    with open("hdfs.log","r") as f:
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder_name + '" 2>&1 | tee folder.log')
+    
+    with open("folder.log","r") as f:
         file_read = f.read()
         
         if file_read.find("No such file or directory") != -1:
@@ -229,28 +246,56 @@ def delete_file(filename,folder_name):
         if file_read.find(filename) == -1:
             return ("Filename does not exists\n")
             
-    os.system (" hdfs dfs -rm /" + folder_name + "/" + filename)
+    os.system ('ssh ubuntu@' + spark_ip + ' " rm  ~/' + folder_name + '/' + filename + '"' )
         
-    return ("Success\n")
+    return ("deleted file = " + filename + "\n\n\n The folder contains\n\n" + list_files(folder_name))
 
 
 #curl  http://130.238.29.19:5000/delete_folder/<folder_name>
 @app.route('/delete_folder/<path:folder_name>', methods=['GET'])
 def delete_folder(folder_name):
     
-    os.system ("hdfs dfs -ls  /" + folder_name + " 2>&1 | tee hdfs.log")
+    spark_ip = find_spark_master_ip()
+    
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder_name + '" 2>&1 | tee folder.log')
 
-    with open("hdfs.log","r") as f:
+    with open("folder.log","r") as f:
         file_read = f.read()
         
         if file_read.find("No such file or directory") != -1:
             return ("Folder name does not exists\n")
             
-    os.system ("hdfs dfs -rm -r  /" + folder_name)
+    os.system ('ssh ubuntu@' + spark_ip + ' " rm -r ~/' + folder_name + '"' )
         
-    return ("Success\n")
+    return ("Deleted folder = " + folder_name + "\n")
+
+@app.route('/list_files', methods=['GET'])
+@app.route('/list_files/<path:folder_name>', methods=['GET'])
+def list_files(folder_name = ""):
+    
+    spark_ip = find_spark_master_ip()
+    
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder_name + '" 2>&1 | tee folder.log')
+
+    with open("folder.log","r") as f:
+        file_read = f.read()
+        
+        if file_read.find("No such file or directory") != -1:
+            return ("Folder name does not exists\n")
+            
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls ~/' + folder_name + '" 2>&1 | tee folder.log' )
+        
+    return (str(open("folder.log","r").read()))
 
 
+def find_spark_master_ip():
+    servers = nova.servers.list()
+    for i in servers:
+        if i.name == spark_master:
+            spark_ip = (list(i.addresses.values())[0][0]["addr"])
+    
+    return (spark_ip)
+    
 # Removing vm information after deleting the vm from hosts files
 def edit_host_file(vm_name,filename):
     with open(filename,"r") as f:
@@ -266,7 +311,7 @@ def edit_host_file(vm_name,filename):
 
 
 @app.route('/deleteip/<string:fixed_ip>', methods=['GET'])
-def delete_node(fixed_ip):
+def deleteip(fixed_ip):
     
     servers = nova.servers.list()
     for i in servers:
