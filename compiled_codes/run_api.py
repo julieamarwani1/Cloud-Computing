@@ -163,54 +163,46 @@ def copy_files(ansible_ip):
     return True
  
 #1Uw93BSs1DSXu8SQeQH4FWraV1ZilgEr9
-#curl  http://130.238.29.19:5000/upload_url/<google_drive_fileid>/<filename>/<folder_name>
-@app.route('/upload_url/<file_id>/<filename>', methods=['GET'])
-@app.route('/upload_url/<file_id>/<filename>/<path:folder_name>', methods=['GET'])
-def upload_url(file_id,filename,folder_name = ""):
+#curl  http://130.238.29.19:5000/upload_url/<google_drive_fileid>/<filename>/<folder>
+@app.route('/uploadurl/<fileid>/<filename>', methods=['GET'])
+@app.route('/uploadurl/<fileid>/<filename>/<path:folder>', methods=['GET'])
+def uploadurl(fileid,filename,folder = ""):
     
     spark_ip = find_spark_master_ip()
             
-    url = "https://docs.google.com/uc?export=download&id=" + file_id
+    url = "https://docs.google.com/uc?export=download&id=" + fileid
     
-    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder_name + '" 2>&1 | tee folder.log')
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder + '" 2>&1 | tee folder.log')
     with open("folder.log","r") as f:
         file_read = f.read()
         
         if file_read.find("No such file or directory") != -1:
-            os.system('ssh ubuntu@' + spark_ip + ' " mkdir  ~/' + folder_name + '" 2>&1 | tee folder.log')
+            os.system('ssh ubuntu@' + spark_ip + ' " mkdir  ~/' + folder + '" 2>&1 | tee folder.log')
             
         if file_read.find(filename) != -1:
             return ("File already exists\n")
 
-    print ('ssh ubuntu@' + spark_ip + ' "wget  --no-check-certificate \'' + url + '\' -O ~/' + folder_name + '/' + filename + '"')
-    os.system('ssh ubuntu@' + spark_ip + ' "wget  --no-check-certificate \'' + url + '\' -O ~/' + folder_name + '/' + filename + '"')
+    print ('ssh ubuntu@' + spark_ip + ' "wget  --no-check-certificate \'' + url + '\' -O ~/' + folder + '/' + filename + '"')
+    os.system('ssh ubuntu@' + spark_ip + ' "wget  --no-check-certificate \'' + url + '\' -O ~/' + folder + '/' + filename + '"')
     
     
     return ("Success\n")
 
-@app.route('/file_check/<filename>/<path:folder_name>', methods=['GET'])
-def file_check(filename,folder_name):
-    
-    spark_ip = find_spark_master_ip()
-    os.system ('ssh ubuntu@' + spark_ip + ' " head  ~/' + folder_name + '/' + filename + '" 2>&1 | tee folder.log')
-    print ('ssh ubuntu@' + spark_ip + ' " tail  ~/' + folder_name + '/' + filename + '"')
-    return (str(open("folder.log","r").read()))
 
-
-#curl -i -X POST http://130.238.29.19:5000/upload_file -F 'file=@20417.txt.utf-8' -F folder_name=
-@app.route('/upload_file', methods=['POST'])
-def upload_file():
+#curl -i -X POST http://130.238.29.19:5000/upload_file -F 'file=@20417.txt.utf-8' -F folder=
+@app.route('/uploadfile', methods=['POST'])
+def uploadfile():
     
     spark_ip = find_spark_master_ip()
     
-    folder_name = (request.form["folder_name"])
+    folder = (request.form["folder"])
 
     filename = str(request.files["file"].filename)
 
     with open(os.getcwd() + '/tmp_file.txt', 'wb') as f:
         f.write(request.files["file"].read())
     
-    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder_name + '" 2>&1 | tee folder.log')
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder + '" 2>&1 | tee folder.log')
     
     with open("folder.log","r") as f:
         file_read = f.read()
@@ -219,23 +211,23 @@ def upload_file():
             return ("File already exists\n")
         
         if file_read.find("No such file or directory") != -1:
-            os.system('ssh ubuntu@' + spark_ip + ' " mkdir  ~/' + folder_name + '" 2>&1 | tee folder.log')
-            os.system("scp " + os.getcwd() + "/tmp_file.txt " + " ubuntu@" + spark_ip + ":~/" + folder_name + "/" + filename)
+            os.system('ssh ubuntu@' + spark_ip + ' " mkdir  ~/' + folder + '" 2>&1 | tee folder.log')
+            os.system("scp " + os.getcwd() + "/tmp_file.txt " + " ubuntu@" + spark_ip + ":~/" + folder + "/" + filename)
         else:
-            os.system("scp " + os.getcwd() + "/tmp_file.txt " + " ubuntu@" + spark_ip + ":~/" + folder_name + "/" + filename)
+            os.system("scp " + os.getcwd() + "/tmp_file.txt " + " ubuntu@" + spark_ip + ":~/" + folder + "/" + filename)
             
     os.system("rm " + os.getcwd() + "/tmp_file.txt")
     return ("Success\n")
 
 
-#curl  http://130.238.29.19:5000/delete_file/<filename>/<folder_name>
-@app.route('/delete_file/<filename>', methods=['GET'])
-@app.route('/delete_file/<filename>/<path:folder_name>', methods=['GET'])
-def delete_file(filename,folder_name = ""):
+#curl  http://130.238.29.19:5000/deletefile/<filename>/<folder>
+@app.route('/deletefile/<filename>', methods=['GET'])
+@app.route('/deletefile/<filename>/<path:folder>', methods=['GET'])
+def deletefile(filename,folder = ""):
     
     spark_ip = find_spark_master_ip()
     
-    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder_name + '" 2>&1 | tee folder.log')
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder + '" 2>&1 | tee folder.log')
     
     with open("folder.log","r") as f:
         file_read = f.read()
@@ -246,18 +238,18 @@ def delete_file(filename,folder_name = ""):
         if file_read.find(filename) == -1:
             return ("Filename does not exists\n")
             
-    os.system ('ssh ubuntu@' + spark_ip + ' " rm  ~/' + folder_name + '/' + filename + '"' )
+    os.system ('ssh ubuntu@' + spark_ip + ' " rm  ~/' + folder + '/' + filename + '"' )
         
-    return ("deleted file = " + filename + "\n\n\n The folder contains\n\n" + list_files(folder_name))
+    return ("deleted file = " + filename + "\n\n\n The folder contains\n\n" + list_files(folder))
 
 
-#curl  http://130.238.29.19:5000/delete_folder/<folder_name>
-@app.route('/delete_folder/<path:folder_name>', methods=['GET'])
-def delete_folder(folder_name):
+#curl  http://130.238.29.19:5000/deletefolder/<folder>
+@app.route('/deletefolder/<path:folder>', methods=['GET'])
+def deletefolder(folder):
     
     spark_ip = find_spark_master_ip()
     
-    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder_name + '" 2>&1 | tee folder.log')
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder + '" 2>&1 | tee folder.log')
 
     with open("folder.log","r") as f:
         file_read = f.read()
@@ -265,17 +257,17 @@ def delete_folder(folder_name):
         if file_read.find("No such file or directory") != -1:
             return ("Folder name does not exists\n")
             
-    os.system ('ssh ubuntu@' + spark_ip + ' " rm -r ~/' + folder_name + '"' )
+    os.system ('ssh ubuntu@' + spark_ip + ' " rm -r ~/' + folder + '"' )
         
-    return ("Deleted folder = " + folder_name + "\n")
+    return ("Deleted folder = " + folder + "\n")
 
-@app.route('/list_files', methods=['GET'])
-@app.route('/list_files/<path:folder_name>', methods=['GET'])
-def list_files(folder_name = ""):
+@app.route('/listfiles', methods=['GET'])
+@app.route('/listfiles/<path:folder>', methods=['GET'])
+def listfiles(folder = ""):
     
     spark_ip = find_spark_master_ip()
     
-    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder_name + '" 2>&1 | tee folder.log')
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls  ~/' + folder + '" 2>&1 | tee folder.log')
 
     with open("folder.log","r") as f:
         file_read = f.read()
@@ -283,7 +275,7 @@ def list_files(folder_name = ""):
         if file_read.find("No such file or directory") != -1:
             return ("Folder name does not exists\n")
             
-    os.system ('ssh ubuntu@' + spark_ip + ' " ls ~/' + folder_name + '" 2>&1 | tee folder.log' )
+    os.system ('ssh ubuntu@' + spark_ip + ' " ls ~/' + folder + '" 2>&1 | tee folder.log' )
         
     return (str(open("folder.log","r").read()))
 
@@ -374,7 +366,7 @@ def run_ansible_new_node(vm_name,ansible_ip):
             print ("Trying again for ansible installation")
 
 
-@app.route('/add_another_node/<int:count>/<string:flavour>', methods=['GET'])
+@app.route('/addanothernode/<int:count>/<string:flavour>', methods=['GET'])
 def add_another_node(count,flavour):
     
     # Find current count of workers
